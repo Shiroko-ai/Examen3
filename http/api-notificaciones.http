@@ -1,0 +1,17 @@
+GET http://localhost:3000
+
+###
+POST http://localhost:3000/enviar-notificacion
+Content-Type: application/json
+
+{
+    "titulo":"SEARS",
+    "mensaje":"Grandes Ofertas",
+    "token":"8F8T8FHFGR8GH8"
+}
+
+###
+GET http://localhost:3000
+
+###
+GET http://www.ipn.mx
