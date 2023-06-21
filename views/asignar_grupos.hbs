@@ -167,6 +167,8 @@
 <thead>
 <tr>
 <th>Grupo</th>
+<th>Usuario</th>
+<th>Contraseña</th>
 <th>Acciones</th>
 </tr>
 </thead>
@@ -216,26 +218,23 @@
 <!-- Page specific script -->
 <!-- Scripts Propios-->
 <script src="dist/js-propios/create-groups.js"></script>
-<script>
-$(function () {
-  bsCustomFileInput.init();
-});
-</script>
-<script>
+<<script>
   $(document).ready(function loadGroups() {
     $.ajax({
-      url: 'http://localhost:3000/group/get-groups',
+      url: 'http://localhost:3000/group/get-all-users',
       method: 'GET',
       success: function (response) {
         var groupTableBody = $('#groupTableBody');
         groupTableBody.empty();
         for (var res in response) {
-          console.log(res)
+          console.log(response[res])
           var row = $('<tr>');
-          row.append($('<td>').text(res));
+          row.append($('<td>').text(response[res].grupo));
+          row.append($('<td>').text(response[res].usuario.user));
+          row.append($('<td>').text(response[res].usuario.password));
 
           // Crea un botón para cada fila
-          var deleteButton = $('<button>').text('Borrar').addClass('btn btn-danger deleteButton');
+          var deleteButton = $('<button>').text('Borrar').addClass('btn btn-danger deleteButton').data('user', response[res].usuario.user).data('group', response[res].grupo);
           row.append($('<td>').append(deleteButton));
 
           groupTableBody.append(row);
@@ -243,8 +242,9 @@ $(function () {
 
         // Asigna un controlador de eventos a los botones de borrado
         $('.deleteButton').click(function() {
-          var groupToDelete = $(this).closest('tr').children('td:first').text();
-          deleteGroup(groupToDelete);
+          var userNameToDelete = $(this).data('user');
+          var groupNameToDelete = $(this).data('group');
+          deleteUser(groupNameToDelete, userNameToDelete);
         });
       },
       error: function (xhr, status, error) {
@@ -254,15 +254,16 @@ $(function () {
   });
 
   // Función para hacer la solicitud POST a tu API
-  function deleteGroup(groupName) {
+  function deleteUser(groupName, userName) {
     $.ajax({
-      url: 'http://localhost:3000/group/delete-group',
+      url: 'http://localhost:3000/group/delete-user',
       method: 'POST',
       data: {
-        groupName: groupName
+        groupName: groupName,
+        userName: userName
       },
       success: function(response) {
-        alert('El grupo ' + groupName + ' ha sido borrado exitosamente!');
+        alert('El usuario ' + userName + ' en el grupo ' + groupName + ' ha sido borrado exitosamente!');
         location.reload(); // Recargar la página para mostrar los cambios
       },
       error: function(xhr, status, error) {
@@ -278,7 +279,6 @@ $(document).ready(function() {
         type: 'GET',
         success: function(grupos) {
             console.log(grupos);
-            
             var select = $('#groupName');
             Object.entries(grupos).forEach(function([key, grupo]) {
                 var option = $('<option>').text(grupo.groupName).val(key);

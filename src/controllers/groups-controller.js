@@ -45,6 +45,28 @@ const getGroups = (req, res) => {
         res.status(500).send("Se produjo un error al obtener los grupos. Error: " + error);
     });
 };
+const getAllUsers = (req, res) => {
+  let db = admin.database();
+  var groupsRef = db.ref('groups');
+  let allUsers = {};
+  groupsRef.once('value', (snapshot) => {
+      const groupsData = snapshot.val();
+      if (groupsData) {
+          // Recorrer cada grupo y obtener los usuarios
+          for (let group in groupsData) {
+              let users = groupsData[group].users;
+              for (let user in users) {
+                  allUsers[user] = {usuario: users[user], "grupo" : group};
+              }
+          }
+          res.status(200).send(allUsers);
+      } else {
+          res.status(404).send("No se encontraron grupos");
+      }
+  }, (error) => {
+      res.status(500).send("Se produjo un error al obtener los usuarios. Error: " + error);
+  });
+};
 const deleteGroup = (req, res) => {
   let db = admin.database();
   var groupsRef = db.ref('groups');
@@ -68,6 +90,29 @@ const deleteGroup = (req, res) => {
           res.status(500).send(`Se produjo un error al eliminar el grupo. Error: ${error}`);
       });
 };
+
+const deleteUser = (req, res) => {
+  let db = admin.database();
+  var groupsRef = db.ref('groups');
+
+  // Recibir el nombre del grupo y el nombre de usuario
+  const groupName = req.body.groupName;
+  const userName = req.body.userName;
+  if(!groupName || !userName) {
+      res.status(400).send("Debe proporcionar un nombre de grupo y un nombre de usuario para eliminar");
+      return;
+  }
+  var userToDeleteRef = groupsRef.child(`${groupName}/users/${userName}`);
+  console.log(userToDeleteRef.key)
+  userToDeleteRef.remove()
+      .then(() => {
+          res.status(200).send(`El usuario ${userName} del grupo ${groupName} se eliminó con éxito`);
+      })
+      .catch((error) => {
+          res.status(500).send(`Se produjo un error al eliminar el usuario. Error: ${error}`);
+      });
+};
+
 
 const registerUser = (req, res) => {
     let params = req.body
@@ -140,4 +185,4 @@ const registerUser = (req, res) => {
    
   
   
-module.exports = { createGroup, getGroups,registerUser,loginUser,deleteGroup };
+module.exports = { createGroup, getGroups,registerUser,loginUser,deleteGroup,getAllUsers, deleteUser };
