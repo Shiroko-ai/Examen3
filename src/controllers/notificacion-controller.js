@@ -1,10 +1,11 @@
 var admin = require('firebase-admin')
-var serviceAcount = require("../../keys/notipush2023-89010-firebase-adminsdk-d0tcu-0fe908b7c4.json");
+var serviceAcount = require("../../keys/examen3-ad4d9-firebase-adminsdk-w2cxn-fa65dcd1fc.json");
 
 //La autenticacion en Firebase
 function iniciaFirebase(){
     admin.initializeApp({
-        credential:admin.credential.cert(serviceAcount)
+        credential:admin.credential.cert(serviceAcount),
+        databaseURL: "https://examen3-ad4d9-default-rtdb.firebaseio.com" 
     })
 }
 
@@ -12,21 +13,137 @@ function iniciaFirebase(){
 iniciaFirebase();
 
 //Crear una funcion para enviar la notificacion - Endpoint
-const enviarMensajeNotificacion = (req=request,res)=>{
-    //Recuperar los datos de la notificacion
-    const { titulo, mensaje, token } = req.body;
-    //Construir y enviar la notificacion
-    admin.messaging().send({
-        token:token,
-        notification:{
-            "title":titulo,
-            "body":mensaje
+const enviarMensajeNotificacion = (req,res)=>{
+    console.log('hola')
+    
+    
+    const { titulo, mensaje } = req.body;
+    
+    const { groupName } = req.body;
+    let db = admin.database();
+    var groupRef = db.ref(`groups/${groupName}`);
+    
+    groupRef.once('value', (groupsSnapshot) => {
+        const groupsData = groupsSnapshot.val();
+        let usuarios = groupsData.users
+        let tokens = []
+        for (let key in usuarios) {
+        tokens.push(usuarios[key].TAG)
         }
-    }).then((resultado)=>{
+        if(tokens.length === 0){
+            res.send("No hay usuarios en este grupo")
+        }
+        else{
+        let mensajes = tokens.map(token => {
+            return {
+                token: token,
+                notification:{
+                    "title":titulo,
+                    "body":mensaje
+                }
+            }
+        });
+    //Construir y enviar la notificacion
+    admin.messaging().sendEach(mensajes).then((resultado)=>{
         res.send("La notificacion se mando correctamente: "+resultado);
     }).catch((error)=>{
         res.send("No se mando la notificacion: "+error);
     })
+    var notiRef = db.ref(`groups/${groupName}/notifications`);
+    notiRef.push({
+        titulo: titulo,
+        mensaje: mensaje,
+        createdAt: admin.database.ServerValue.TIMESTAMP
+    });
+    }})
+    
+
 }
 
-module.exports={enviarMensajeNotificacion};
+const borrarNotificacion = (req, res) => {
+    const { createdAt, groupName } = req.body;
+    let db = admin.database();
+    var notiRef = db.ref(`groups/${groupName}/notifications`);
+
+    notiRef.once('value', (snapshot) => {
+        const notiData = snapshot.val();
+        let notiKeyToDelete = null;
+        
+        // Buscar la notificación con la marca de tiempo proporcionada
+        for (let key in notiData) {
+            console.log("comparacion "+notiData[key].createdAt+" real"+createdAt)
+            if (notiData[key].createdAt == createdAt) {
+                notiKeyToDelete = key;
+                break;
+            }
+        }
+
+        // Borrar la notificación si se encontró una coincidencia
+        if (notiKeyToDelete) {
+            notiRef.child(notiKeyToDelete).remove()
+                .then(() => {
+                    res.status(200).send("La notificación ha sido borrada correctamente.");
+                })
+                .catch((error) => {
+                    res.status(500).send("Se produjo un error al intentar borrar la notificación. Error: " + error);
+                });
+        } else {
+            res.status(404).send("No se encontró ninguna notificación con la marca de tiempo proporcionada.");
+        }
+    }, (error) => {
+        res.status(500).send("Se produjo un error al obtener las notificaciones. Error: " + error);
+    });
+}
+
+
+
+const obtenerNotificaciones = (req,res)=>{
+    const { groupName } = req.body;
+    let db = admin.database();
+    console.log(groupName)
+    var notiRef = db.ref(`groups/${groupName}/notifications`);
+    notiRef.once('value', (snapshot) => {
+        const notiData = snapshot.val();
+        console.log(notiData)
+        if (notiData) {
+            console.log("si hay")
+            res.status(200).send(notiData);
+        } else {
+            console.log("no hay")
+            res.status(404).send("No se encontraron notificaciones");
+        }
+    }, (error) => {
+        res.status(500).send("Se produjo un error al obtener los grupos. Error: " + error);
+    });
+    }
+    const obtenerTodasLasNotificaciones = (req, res) => {
+        let db = admin.database();
+        var groupsRef = db.ref(`groups`);
+        groupsRef.once('value', (snapshot) => {
+            const groupsData = snapshot.val();
+            const allNotifications = [];
+            console.log(groupsData)
+            for(let groupName in groupsData){
+                const group = groupsData[groupName];
+                if(group.notifications){
+                    for(let notiKey in group.notifications){
+                        const noti = group.notifications[notiKey];
+                        allNotifications.push({noti, groupName});
+                    }
+                }
+            }
+    
+            if (allNotifications.length > 0) {
+                console.log("si hay")
+                res.status(200).send(allNotifications);
+            } else {
+                console.log("no hay")
+                res.status(404).send("No se encontraron notificaciones");
+            }
+        }, (error) => {
+            res.status(500).send("Se produjo un error al obtener las notificaciones. Error: " + error);
+        });
+    }
+    
+
+module.exports={enviarMensajeNotificacion, obtenerNotificaciones, obtenerTodasLasNotificaciones,borrarNotificacion};

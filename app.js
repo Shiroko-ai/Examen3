@@ -4,8 +4,8 @@ const cors      = require('cors');
 const bodyParser= require('body-parser')
 const puerto    = process.env.PORT || 3000;
 
-const router    = require('./src/routes/notificacion-routs')
-
+const notificationRouter  = require('./src/routes/notificacion-routs')
+const groupRouter = require('./src/routes/groups-routs')
 //Nuestra constante se comporte de tal forma que pueda procesar
 //Solicitudes de GET, POST, PUT, DELETE, etc
 const app = express();
@@ -20,20 +20,24 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
 
 //Uso la ruta que define en el router y que la procesa el controlador
-app.use(router);
+app.use('/notification',notificationRouter);
+app.use('/group',groupRouter);
 
 //Respoder solicitudes en el directorio con el metodo get
 app.get('/',(req,res)=>{
-    res.render('index');
+    res.render('notificaciones');
     //res.send('Esta es la pagina principal - index')
 })
 
 //Es la vista o pagina HTML para la enviar la notificación 
-app.get('/push',(req,res)=>{
-    res.render('notificaciones');   
+app.get('/crear_grupos',(req,res)=>{
+    res.render('crear_grupos');   
     //res.send('Aqui va la pagina de Notificaciones Push');
 })
-
+app.get('/asignar_grupos',(req,res)=>{
+    res.render('asignar_grupos');   
+    //res.send('Aqui va la pagina de Notificaciones Push');
+})
 //Esta es para responder con cualquier otra pagina
 //Que no se encuentre
 app.get('*',(req,res)=>{
