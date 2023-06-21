@@ -1,12 +1,11 @@
 var admin = require('firebase-admin');
 var serviceAccount = require("../../keys/examen3-ad4d9-firebase-adminsdk-w2cxn-fa65dcd1fc.json");
 
-// Initialize Firebase
 function initFirebase() {
     if (!admin.apps.length) {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            databaseURL: "https://examen3-ad4d9-default-rtdb.firebaseio.com"  // replace this with your Firebase RTDB URL
+            databaseURL: "https://examen3-ad4d9-default-rtdb.firebaseio.com"  
         });
     }
 }
@@ -52,7 +51,7 @@ const getAllUsers = (req, res) => {
   groupsRef.once('value', (snapshot) => {
       const groupsData = snapshot.val();
       if (groupsData) {
-          // Recorrer cada grupo y obtener los usuarios
+
           for (let group in groupsData) {
               let users = groupsData[group].users;
               for (let user in users) {
@@ -70,18 +69,12 @@ const getAllUsers = (req, res) => {
 const deleteGroup = (req, res) => {
   let db = admin.database();
   var groupsRef = db.ref('groups');
-
-  // Recibir el nombre del grupo a eliminar
   const groupName = req.body.groupName;
   if(!groupName) {
       res.status(400).send("Debe proporcionar un nombre de grupo para eliminar");
       return;
   }
-
-  // Encontrar el grupo con el nombre proporcionado
   var groupToDeleteRef = groupsRef.child(groupName);
-
-  // Eliminar el grupo
   groupToDeleteRef.remove()
       .then(() => {
           res.status(200).send(`El grupo ${groupName} se eliminó con éxito`);
@@ -94,23 +87,46 @@ const deleteGroup = (req, res) => {
 const deleteUser = (req, res) => {
   let db = admin.database();
   var groupsRef = db.ref('groups');
-
-  // Recibir el nombre del grupo y el nombre de usuario
   const groupName = req.body.groupName;
   const userName = req.body.userName;
   if(!groupName || !userName) {
       res.status(400).send("Debe proporcionar un nombre de grupo y un nombre de usuario para eliminar");
       return;
   }
-  var userToDeleteRef = groupsRef.child(`${groupName}/users/${userName}`);
-  console.log(userToDeleteRef.key)
-  userToDeleteRef.remove()
-      .then(() => {
-          res.status(200).send(`El usuario ${userName} del grupo ${groupName} se eliminó con éxito`);
-      })
-      .catch((error) => {
-          res.status(500).send(`Se produjo un error al eliminar el usuario. Error: ${error}`);
-      });
+  var groupRef = groupsRef.child(groupName);
+
+  groupRef.once('value', (snapshot) => {
+      if (snapshot.exists()) {
+          const groupData = snapshot.val();
+          let userKeyToDelete = null;
+
+          // Recorremos todos los usuarios del grupo
+          for (let userKey in groupData.users) {
+              if (groupData.users[userKey].user === userName) {
+                  userKeyToDelete = userKey;
+                  break;
+              }
+          }
+
+          // Encontramos el usuario, procedemos a eliminarlo
+          if (userKeyToDelete) {
+              var userToDeleteRef = groupRef.child(`users/${userKeyToDelete}`);
+              userToDeleteRef.remove()
+                  .then(() => {
+                      res.status(200).send(`El usuario ${userName} del grupo ${groupName} se eliminó con éxito`);
+                  })
+                  .catch((error) => {
+                      res.status(500).send(`Se produjo un error al eliminar el usuario. Error: ${error}`);
+                  });
+          } else {
+              res.status(404).send(`No se encontró al usuario ${userName} en el grupo ${groupName}`);
+          }
+      } else {
+          res.status(404).send("No se encontró el grupo proporcionado");
+      }
+  }, (error) => {
+      res.status(500).send("Se produjo un error al obtener el grupo. Error: " + error);
+  });
 };
 
 
@@ -121,10 +137,8 @@ const registerUser = (req, res) => {
     let password = params.password
     let group = params.group
     let db = admin.database();
-    // Crear una referencia a la base de datos RTD
     let groupRef = db.ref(`groups/${group}`);
   
-    // Verificar si el grupo existe
     groupRef.once('value', (snapshot) => {
       if (snapshot.exists()) {
         let userData = {
@@ -161,8 +175,7 @@ const registerUser = (req, res) => {
           if (groupSnapshot.hasChild('users')) {
             let usersRef = groupSnapshot.child('users');
             let jsonRefUsers = usersRef.toJSON();
-            
-            // Iterate over users in group
+
             for (let key in jsonRefUsers) {
               if (jsonRefUsers.hasOwnProperty(key)) {
                 let currentUser = jsonRefUsers[key];

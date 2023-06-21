@@ -232,8 +232,6 @@
           row.append($('<td>').text(response[res].grupo));
           row.append($('<td>').text(response[res].usuario.user));
           row.append($('<td>').text(response[res].usuario.password));
-
-          // Crea un botón para cada fila
           var deleteButton = $('<button>').text('Borrar').addClass('btn btn-danger deleteButton').data('user', response[res].usuario.user).data('group', response[res].grupo);
           row.append($('<td>').append(deleteButton));
 
@@ -252,19 +250,18 @@
       }
     })
   });
-
-  // Función para hacer la solicitud POST a tu API
   function deleteUser(groupName, userName) {
     $.ajax({
       url: 'http://localhost:3000/group/delete-user',
       method: 'POST',
       data: {
+
         groupName: groupName,
         userName: userName
       },
       success: function(response) {
         alert('El usuario ' + userName + ' en el grupo ' + groupName + ' ha sido borrado exitosamente!');
-        location.reload(); // Recargar la página para mostrar los cambios
+        location.reload(); 
       },
       error: function(xhr, status, error) {
         console.error(error);

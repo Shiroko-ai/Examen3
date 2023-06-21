@@ -1,7 +1,7 @@
 var admin = require('firebase-admin')
 var serviceAcount = require("../../keys/examen3-ad4d9-firebase-adminsdk-w2cxn-fa65dcd1fc.json");
 
-//La autenticacion en Firebase
+
 function iniciaFirebase(){
     admin.initializeApp({
         credential:admin.credential.cert(serviceAcount),
@@ -9,10 +9,8 @@ function iniciaFirebase(){
     })
 }
 
-//Aqui nos autenticamos, ya que mandamos llamar la funcion
 iniciaFirebase();
 
-//Crear una funcion para enviar la notificacion - Endpoint
 const enviarMensajeNotificacion = (req,res)=>{
     console.log('hola')
     
@@ -43,7 +41,6 @@ const enviarMensajeNotificacion = (req,res)=>{
                 }
             }
         });
-    //Construir y enviar la notificacion
     admin.messaging().sendEach(mensajes).then((resultado)=>{
         res.send("La notificacion se mando correctamente: "+resultado);
     }).catch((error)=>{
@@ -63,13 +60,12 @@ const enviarMensajeNotificacion = (req,res)=>{
 const borrarNotificacion = (req, res) => {
     const { createdAt, groupName } = req.body;
     let db = admin.database();
+    console.log(groupName, createdAt)
     var notiRef = db.ref(`groups/${groupName}/notifications`);
 
     notiRef.once('value', (snapshot) => {
         const notiData = snapshot.val();
         let notiKeyToDelete = null;
-        
-        // Buscar la notificación con la marca de tiempo proporcionada
         for (let key in notiData) {
             console.log("comparacion "+notiData[key].createdAt+" real"+createdAt)
             if (notiData[key].createdAt == createdAt) {
@@ -78,7 +74,6 @@ const borrarNotificacion = (req, res) => {
             }
         }
 
-        // Borrar la notificación si se encontró una coincidencia
         if (notiKeyToDelete) {
             notiRef.child(notiKeyToDelete).remove()
                 .then(() => {

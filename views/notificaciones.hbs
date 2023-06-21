@@ -247,25 +247,22 @@ $(document).ready(function loadGroups() {
             for (var i = 0; i < response.length; i++) {
                 var res = response[i];
                 
-                console.log(res.noti.mensaje) // imprime el mensaje de la notificación
+                console.log(res.noti.mensaje)
 
                 var row = $('<tr>');
-                row.append($('<td>').text(res.groupName)); // muestra el nombre del grupo
-                row.append($('<td>').text(res.noti.createdAt)); // muestra el nombre del grupo
-                row.append($('<td>').text(res.noti.titulo)); // muestra el nombre del grupo
-                row.append($('<td>').text(res.noti.mensaje)); // muestra el mensaje de la notificación
-
-                // Crea un botón para cada fila
+                row.append($('<td>').text(res.groupName)); 
+                row.append($('<td>').text(res.noti.createdAt)); 
+                row.append($('<td>').text(res.noti.titulo)); 
+                row.append($('<td>').text(res.noti.mensaje)); 
                 var deleteButton = $('<button>').text('Borrar').addClass('btn btn-danger deleteButton');
                 row.append($('<td>').append(deleteButton));
 
                 groupTableBody.append(row);
             }
 
-            // Asigna un controlador de eventos a los botones de borrado
             $('.deleteButton').click(function () {
                 var groupToDelete = $(this).closest('tr').children('td:first').text();
-                deleteNotification(res.noti.createdAt, res.noti.createdAt);
+                deleteNotification(res.noti.createdAt, res.groupName);
             });
         },
         error: function (xhr, status, error) {
@@ -275,8 +272,8 @@ $(document).ready(function loadGroups() {
 });
 
 
-  // Función para hacer la solicitud POST a tu API
   function deleteNotification(createdAt, groupName) {
+    console.log(createdAt)
     $.ajax({
       method: 'POST',
       url: 'http://localhost:3000/notification/delete-notification',
